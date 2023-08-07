@@ -1,1 +1,1 @@
-# springboot_sample
+# Spring boot REST API application for product management
