@@ -1,0 +1,24 @@
+server:
+  servlet:
+    context-path: /api
+spring:
+  application:
+    name: Product REST API
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/product
+    username: product
+    password: passwd123
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop #will change to other setting in production environment, the best solution is using liquibase
+
+
+product:
+  price:
+    limit:
+      exceed: 10000 #dollor
+      pending: 5000 #dollor
+      update: 50 #percentage
