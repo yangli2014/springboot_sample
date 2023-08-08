@@ -2,6 +2,8 @@ package com.yang.product.product.controler;
 
 import com.yang.product.product.dto.ApprovalDTO;
 import com.yang.product.product.dto.ProductDTO;
+import com.yang.product.product.entity.ProductStatus;
+import com.yang.product.product.exception.ApprovalException;
 import com.yang.product.product.exception.ProductException;
 import com.yang.product.product.service.ProductService;
 import org.slf4j.Logger;
@@ -29,9 +31,14 @@ public class ProductController {
         return service.listActiveProducts();
     }
     @PostMapping
-    public ResponseEntity<Object> createProduct(@RequestBody ProductDTO productDTO) {
+    public ResponseEntity<?> createProduct(@RequestBody ProductDTO productDTO) {
         try {
-            return ResponseEntity.ok(service.createNewProduct(productDTO));
+            ProductDTO newProduct = service.createNewProduct(productDTO);
+            if(ProductStatus.ACTIVE.name().equals(newProduct.getStatus())) {
+                return ResponseEntity.ok(newProduct);
+            } else {
+                return ResponseEntity.accepted().body("Adding new product request was sent and waiting for approval");
+            }
         } catch (ProductException e) {
             LOG.error("Product Error while creating new product {}", productDTO, e);
             return new ResponseEntity<>(e.getMessage(), e.getHttpStatus());
@@ -42,9 +49,14 @@ public class ProductController {
     }
 
     @PutMapping("/{productId}")
-    public ResponseEntity<Object> updateProduct(@PathVariable long productId, @RequestBody ProductDTO dto) {
+    public ResponseEntity<?> updateProduct(@PathVariable long productId, @RequestBody ProductDTO dto) {
         try {
-            return ResponseEntity.ok(service.updateProduct(productId, dto));
+            ProductDTO updated = service.updateProduct(productId, dto);
+            if(updated.getPrice() == dto.getPrice()) {
+                return ResponseEntity.ok(updated);
+            } else {
+                return ResponseEntity.accepted().body("Price updating request was sent and waiting for approval");
+            }
         } catch (ProductException e) {
             LOG.error("Error while updating product with ID {}", productId, e);
             return new ResponseEntity<>(e.getMessage(),e.getHttpStatus());
@@ -54,8 +66,47 @@ public class ProductController {
         }
     }
 
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<?> deleteProduct(@PathVariable long productId) {
+        try {
+            service.deleteProduct(productId);
+            return ResponseEntity.accepted().body("Deleting product request was sent and waiting for approval.");
+        } catch (ProductException e) {
+            LOG.error("Error while deleting product with ID {}", productId, e);
+            return new ResponseEntity<>(e.getMessage(),e.getHttpStatus());
+        } catch (Exception e) {
+            LOG.error("Error while deleting product with ID {}", productId, e);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
     @GetMapping("/approval-queue")
     public List<ApprovalDTO> listApproval() {
         return service.listAllNewApproval();
+    }
+
+    @PutMapping("/approval-queue/{approvalId}/approve")
+    public ResponseEntity<?> approveProduct(@PathVariable long approvalId) {
+        try {
+            service.approveProduct(approvalId);
+            return ResponseEntity.noContent().build();
+        } catch (ApprovalException e) {
+            LOG.error("Error while approving product change with approval ID {}", approvalId, e);
+            return new ResponseEntity<>(e.getMessage(),e.getHttpStatus());
+        } catch (Exception e) {
+            LOG.error("Error while approving with approval id {}", approvalId, e);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PutMapping("/approval-queue/{approvalId}/reject")
+    public ResponseEntity<?> rejectProduct(@PathVariable long approvalId) {
+        try {
+            service.rejectApproval(approvalId);
+            return ResponseEntity.noContent().build();
+        } catch (ApprovalException e) {
+            LOG.error("Error while rejecting product change with approval ID {}", approvalId, e);
+            return new ResponseEntity<>(e.getMessage(),e.getHttpStatus());
+        }
     }
 }

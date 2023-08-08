@@ -18,9 +18,14 @@ public class Approval {
     @Enumerated(EnumType.STRING)
     private ApprovalStatus status;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "product_id", referencedColumnName = "id")
+    @ManyToOne
+    @JoinColumn(name = "product_id", referencedColumnName = "id", nullable = false)
     private Product product;
+
+    private float newPrice;
+
+    @Enumerated(EnumType.STRING)
+    private Operation operation;
 
     public Approval() {
         requestTime = LocalDateTime.now();
@@ -32,6 +37,22 @@ public class Approval {
 
     public void setProduct(Product product) {
         this.product = product;
+    }
+
+    public Operation getOperation() {
+        return operation;
+    }
+
+    public void setOperation(Operation operation) {
+        this.operation = operation;
+    }
+
+    public float getNewPrice() {
+        return newPrice;
+    }
+
+    public void setNewPrice(float newPrice) {
+        this.newPrice = newPrice;
     }
 
     public long getId() {

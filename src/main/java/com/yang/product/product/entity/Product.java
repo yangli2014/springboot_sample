@@ -3,6 +3,8 @@ package com.yang.product.product.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name="product")
@@ -21,6 +23,9 @@ public class Product {
     @Column(name = "post_date", columnDefinition = "TIMESTAMP")
     private LocalDate postDate;
 
+    @OneToMany(mappedBy = "product", orphanRemoval = true, cascade = CascadeType.ALL)
+    private List<Approval> approvals = new ArrayList<>();
+
     public Product() {
         postDate = LocalDate.now();
     }
@@ -30,6 +35,14 @@ public class Product {
         this.price = price;
         this.status = productStatus;
         postDate = LocalDate.now();
+    }
+
+    public List<Approval> getApprovals() {
+        return approvals;
+    }
+
+    public void setApprovals(List<Approval> approvals) {
+        this.approvals = approvals;
     }
 
     public Long getId() {

@@ -2,13 +2,13 @@ package com.yang.product.product.service;
 
 import com.yang.product.product.dto.ApprovalDTO;
 import com.yang.product.product.dto.ProductDTO;
-import com.yang.product.product.entity.Approval;
-import com.yang.product.product.entity.ApprovalStatus;
-import com.yang.product.product.entity.Product;
-import com.yang.product.product.entity.ProductStatus;
+import com.yang.product.product.entity.*;
+import com.yang.product.product.exception.ApprovalException;
 import com.yang.product.product.exception.ProductException;
 import com.yang.product.product.repo.ApprovalRepo;
 import com.yang.product.product.repo.ProductRepo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -18,6 +18,7 @@ import java.util.List;
 
 @Service
 public class ProductService {
+    Logger LOG = LoggerFactory.getLogger(ProductService.class);
     private final ProductRepo productRepo;
     private final ApprovalRepo approvalRepo;
     @Value("${product.price.limit.exceed}")
@@ -48,29 +49,42 @@ public class ProductService {
         Product product = dtoToEntity(newProduct);
         if(product.getPrice() > priceLimitPending) {
             product.setStatus(ProductStatus.PENDING);
-            createNewApproval("Created a new product with price exceed $" + priceLimitPending + ", please verify " +
-                    "the request data", product);
+            productRepo.save(product);
+            createNewApproval(Operation.ADD, "Created a new product with price exceed $" + priceLimitPending +
+                    "the request data", product, product.getPrice());
+        } else {
+            productRepo.save(product);
         }
-        productRepo.save(product);
         return entityToDTO(product);
     }
 
     public ProductDTO updateProduct(long productId, ProductDTO dto) throws ProductException {
-        Product product = productRepo.findById(productId).orElseThrow(() -> new ProductException("Product with specified id: "
-                + productId + " doesn't exist", HttpStatus.NOT_FOUND));
+        Product product = findProductById(productId);
         if(dto.getPrice() <=0) {
             throw new ProductException("The product price must be greater than zero.", HttpStatus.BAD_REQUEST);
         }
         float oldPrice = product.getPrice();
-        product.setPrice(dto.getPrice());
         product.setName(dto.getName());
         product.setStatus(ProductStatus.valueOf(dto.getStatus()));
-        if((dto.getPrice() - oldPrice) / oldPrice > priceLimitUpdate/ 100) {
-          product.setStatus(ProductStatus.UPDATED);
-          createNewApproval("The product price will be increased more than " + priceLimitUpdate +"%.", product);
+        if((dto.getPrice() - oldPrice) / oldPrice > priceLimitUpdate / 100) {
+          createNewApproval(Operation.UPDATE, "The product price will be increased more than " + priceLimitUpdate
+                  +"%.", product, dto.getPrice());
+        } else {
+            product.setPrice(dto.getPrice());
+            productRepo.save(product);
         }
-        productRepo.save(product);
         return entityToDTO(product);
+    }
+
+    public void deleteProduct(long productId) throws ProductException {
+        Product product = findProductById(productId);
+        createNewApproval(Operation.DELETE,"Delete Product with ID: " + productId, product, product.getPrice());
+    }
+
+    private Product findProductById(long productId) throws ProductException {
+        Product product = productRepo.findById(productId).orElseThrow(() -> new ProductException("Product with specified id: "
+                + productId + " doesn't exist", HttpStatus.NOT_FOUND));
+        return product;
     }
 
     public List<ApprovalDTO> listAllNewApproval() {
@@ -78,11 +92,51 @@ public class ProductService {
                 .stream().map(a -> new ApprovalDTO(a)).toList();
     }
 
-    private void createNewApproval(String reason, Product product) {
+    public void approveProduct(long approvalId) throws ApprovalException {
+        Approval approval = findApproval(approvalId);
+        Product product = approval.getProduct();
+        switch (approval.getOperation()) {
+            case ADD -> product.setStatus(ProductStatus.ACTIVE);
+            case DELETE -> {
+                product.setStatus(ProductStatus.DELETED);
+                approvalRepo.findByProduct(product)
+                        .stream().filter(a -> a.getId() != approvalId)
+                        .forEach(a -> {
+                            try {
+                                rejectApproval(a.getId());
+                            } catch (ApprovalException e) {
+                                LOG.error("error while reject approval for deleted product", e);
+                            }
+                        });
+            }
+            case UPDATE -> product.setPrice(approval.getNewPrice());
+        }
+        productRepo.save(product);
+        approval.setStatus(ApprovalStatus.APPROVED);
+        approvalRepo.save(approval);
+    }
+
+    public void rejectApproval(long approvalId) throws ApprovalException {
+        Approval approval = findApproval(approvalId);
+        approval.setStatus(ApprovalStatus.REJECTED);
+        if(approval.getOperation().equals(Operation.DELETE) && approval.getProduct().getStatus().equals(ProductStatus.PENDING)) {
+            productRepo.deleteById(approval.getProduct().getId());
+        }
+    }
+
+    private Approval findApproval(long approvalId) throws ApprovalException {
+        return approvalRepo.findById(approvalId)
+                .orElseThrow(() -> new ApprovalException("Approval with id " + approvalId + " doesn't exist",
+                        HttpStatus.NOT_FOUND));
+    }
+
+    private void createNewApproval(Operation operation, String reason, Product product, float newPrice) {
         Approval approval = new Approval();
         approval.setStatus(ApprovalStatus.NEW);
         approval.setReason(reason);
         approval.setProduct(product);
+        approval.setOperation(operation);
+        approval.setNewPrice(newPrice);
         approvalRepo.save(approval);
     }
 
