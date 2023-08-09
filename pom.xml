@@ -71,18 +71,6 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-<!--			<plugin>-->
-<!--				<groupId>org.liquibase</groupId>-->
-<!--				<artifactId>liquibase-maven-plugin</artifactId>-->
-<!--				<version>4.23.0</version>-->
-<!--				<configuration>-->
-<!--					<driver>org.postgresql.Driver</driver>-->
-<!--					<url>jdbc:postgresql://localhost:5432/product</url>-->
-<!--					<username>product</username>-->
-<!--					<password>passwd123</password>-->
-<!--					<outputChangeLogFile>src/main/resources/db/changeLog.xml</outputChangeLogFile>-->
-<!--				</configuration>-->
-<!--			</plugin>-->
 		</plugins>
 	</build>
 
