@@ -13,8 +13,9 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: create-drop #will change to other setting in production environment, the best solution is using liquibase
-
+      ddl-auto: validate
+  liquibase:
+    change-log: db/changeLog.xml
 
 product:
   price:

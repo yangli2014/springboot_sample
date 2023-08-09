@@ -2,11 +2,13 @@ package com.yang.product.product.service;
 
 import com.yang.product.product.dto.ApprovalDTO;
 import com.yang.product.product.dto.ProductDTO;
+import com.yang.product.product.dto.SearchCriteria;
 import com.yang.product.product.entity.*;
 import com.yang.product.product.exception.ApprovalException;
 import com.yang.product.product.exception.ProductException;
 import com.yang.product.product.repo.ApprovalRepo;
 import com.yang.product.product.repo.ProductRepo;
+import com.yang.product.product.repo.ProductSpecification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,12 @@ public class ProductService {
 
     public List<ProductDTO> listActiveProducts() {
         return productRepo.findByStatus(ProductStatus.ACTIVE)
+                .stream().map(p -> entityToDTO(p)).toList();
+    }
+
+    public List<ProductDTO> searchProducts(SearchCriteria criteria) {
+        ProductSpecification spec = new ProductSpecification(criteria);
+        return productRepo.findAll(spec)
                 .stream().map(p -> entityToDTO(p)).toList();
     }
 
@@ -119,9 +127,12 @@ public class ProductService {
     public void rejectApproval(long approvalId) throws ApprovalException {
         Approval approval = findApproval(approvalId);
         approval.setStatus(ApprovalStatus.REJECTED);
-        if(approval.getOperation().equals(Operation.DELETE) && approval.getProduct().getStatus().equals(ProductStatus.PENDING)) {
-            productRepo.deleteById(approval.getProduct().getId());
+        Product product = approval.getProduct();
+        if(approval.getOperation().equals(Operation.ADD) && product.getStatus().equals(ProductStatus.PENDING)) {
+            product.setStatus(ProductStatus.DELETED);
+            productRepo.save(product);
         }
+        approvalRepo.save(approval);
     }
 
     private Approval findApproval(long approvalId) throws ApprovalException {

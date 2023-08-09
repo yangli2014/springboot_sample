@@ -2,6 +2,7 @@ package com.yang.product.product.controler;
 
 import com.yang.product.product.dto.ApprovalDTO;
 import com.yang.product.product.dto.ProductDTO;
+import com.yang.product.product.dto.SearchCriteria;
 import com.yang.product.product.entity.ProductStatus;
 import com.yang.product.product.exception.ApprovalException;
 import com.yang.product.product.exception.ProductException;
@@ -30,6 +31,17 @@ public class ProductController {
     public List<ProductDTO> listProducts() {
         return service.listActiveProducts();
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<?> searchProducts(SearchCriteria criteria) {
+        try {
+            return ResponseEntity.ok(service.searchProducts(criteria));
+        } catch (Exception e) {
+            LOG.error("Error while searching products, {}", criteria.toString(), e);
+            return ResponseEntity.badRequest().body("Error while searching the products");
+        }
+    }
+
     @PostMapping
     public ResponseEntity<?> createProduct(@RequestBody ProductDTO productDTO) {
         try {
@@ -44,7 +56,7 @@ public class ProductController {
             return new ResponseEntity<>(e.getMessage(), e.getHttpStatus());
         } catch (Exception e) {
             LOG.error("Error while creating new product {}", productDTO, e);
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Error happened during create product, please verify the request data", HttpStatus.BAD_REQUEST);
         }
     }
 
