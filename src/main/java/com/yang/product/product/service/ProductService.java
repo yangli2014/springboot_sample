@@ -165,4 +165,16 @@ public class ProductService {
         Product product = new Product(dto.getName(), dto.getPrice(), ProductStatus.valueOf(dto.getStatus().toUpperCase()));
         return product;
     }
+
+    protected void setPriceLimitExceed(float priceLimitExceed) {
+        this.priceLimitExceed = priceLimitExceed;
+    }
+
+    protected void setPriceLimitPending(float priceLimitPending) {
+        this.priceLimitPending = priceLimitPending;
+    }
+
+    protected void setPriceLimitUpdate(float priceLimitUpdate) {
+        this.priceLimitUpdate = priceLimitUpdate;
+    }
 }

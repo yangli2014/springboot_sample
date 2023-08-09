@@ -1,0 +1,25 @@
+server:
+  servlet:
+    context-path: /api
+spring:
+  application:
+    name: Product REST API
+
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:myDb;DB_CLOSE_DELAY=-1
+    username: sa
+    password: sa
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  liquibase:
+    enabled: false
+
+product:
+  price:
+    limit:
+      exceed: 10000 #dollor
+      pending: 5000 #dollor
+      update: 50 #percentage

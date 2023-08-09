@@ -1,4 +1,4 @@
-package com.yang.product.product.controler;
+package com.yang.product.product.controller;
 
 import com.yang.product.product.dto.ApprovalDTO;
 import com.yang.product.product.dto.ProductDTO;
